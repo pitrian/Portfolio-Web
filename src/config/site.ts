@@ -10,7 +10,7 @@ export const siteConfig = {
   },
   brand: {
     name: "Ngô Minh Chung",
-    logoTag: "< Ngô Minh Chung />",
+    logoTag: "< Cren />",
   },
   hero: {
     prompt: "$ Hello, I'm",
