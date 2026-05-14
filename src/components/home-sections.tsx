@@ -3,6 +3,25 @@ import { siteConfig } from "@/config/site";
 import { HeroCodePanel } from "@/components/hero-code-panel";
 import { SocialQuickLinks } from "@/components/social-quick-links";
 
+type PostEntry = (typeof siteConfig.posts)[number];
+
+/** Hỗ trợ bài có `slug` (trang /blog/...) hoặc `href` ngoài (Medium, dev.to, ...). */
+function postHref(post: PostEntry): string {
+  const p = post as PostEntry & { href?: string; slug?: string };
+  if (p.href && p.href.length > 0) {
+    return p.href;
+  }
+  if (p.slug && p.slug.length > 0) {
+    return `/blog/${p.slug}`;
+  }
+  return "#";
+}
+
+function postKey(post: PostEntry): string {
+  const id = post as { slug?: string; href?: string; title: string };
+  return id.slug ?? id.href ?? id.title;
+}
+
 export function HeroSection() {
   const { hero, brand } = siteConfig;
   return (
@@ -46,32 +65,65 @@ export function HeroSection() {
 }
 
 export function FeaturedSection() {
-  const { featured } = siteConfig;
+  const { projects, social } = siteConfig;
   return (
     <section
       id="projects"
       className="border-y border-zinc-800/80 bg-gradient-to-b from-zinc-950 to-zinc-900/40"
     >
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-        <div className="mb-8 max-w-2xl">
-          <p className="section-eyebrow">Projects</p>
-          <h2 className="section-title mt-2">What I&apos;m building</h2>
-        </div>
-        <div className="card-interactive flex flex-col gap-6 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 shadow-inner ring-1 ring-white/5 sm:flex-row sm:items-center sm:gap-8 sm:p-8">
-          <div
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/5 bg-zinc-950/80 text-2xl shadow-inner"
-            aria-hidden
+        <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+          <div className="max-w-2xl">
+            <p className="section-eyebrow">Projects</p>
+            <h2 className="section-title mt-2">What I&apos;m building</h2>
+          </div>
+          <a
+            href={social.github}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 rounded-lg border border-transparent px-3 py-1.5 text-sm font-medium text-cyan-400 transition hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-cyan-300 hover:shadow-[0_0_16px_rgba(34,211,238,0.15)]"
           >
-            {siteConfig.featured.icon}
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-xl font-semibold text-white">{featured.title}</h3>
-            <p className="mt-2 text-zinc-400">{featured.description}</p>
-          </div>
-          <Link href={featured.cta.href} className="btn-primary shrink-0 px-5 py-2.5 text-sm">
-            {featured.cta.label}
-          </Link>
+            All on GitHub →
+          </a>
         </div>
+        {projects.length > 0 ? (
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {projects.map((project) => (
+              <li key={project.href}>
+                <a
+                  href={project.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="card-interactive group flex h-full flex-col rounded-xl border border-zinc-800 bg-zinc-900/30 p-5"
+                >
+                  <h3 className="text-lg font-semibold text-zinc-100">{project.title}</h3>
+                  <p className="mt-2 flex-1 text-sm leading-relaxed text-zinc-400">
+                    {project.description}
+                  </p>
+                  {"tags" in project && project.tags.length > 0 ? (
+                    <ul className="mt-3 flex flex-wrap gap-2">
+                      {project.tags.map((tag) => (
+                        <li
+                          key={tag}
+                          className="rounded-full border border-zinc-700/80 bg-zinc-950/50 px-2.5 py-0.5 text-xs text-zinc-400"
+                        >
+                          {tag}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  <p className="mt-4 text-sm font-medium text-cyan-400 group-hover:text-cyan-300">
+                    Open repo →
+                  </p>
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-zinc-500">
+            Add entries to <span className="font-mono text-zinc-400">projects</span> in site config.
+          </p>
+        )}
       </div>
     </section>
   );
@@ -93,17 +145,37 @@ export function LatestPostsSection() {
         </Link>
       </div>
       <ul className="grid gap-4 sm:grid-cols-2">
-        {siteConfig.posts.map((post) => (
-          <li key={post.title}>
-            <Link
-              href={post.href}
-              className="card-interactive block rounded-xl border border-zinc-800 bg-zinc-900/30 p-5"
-            >
-              <time className="text-sm text-zinc-500">{post.date}</time>
-              <p className="mt-2 text-lg font-semibold text-zinc-100">{post.title}</p>
-            </Link>
-          </li>
-        ))}
+        {siteConfig.posts.map((post) => {
+          const href = postHref(post);
+          return (
+            <li key={postKey(post)}>
+              <Link
+                href={href}
+                className="card-interactive block rounded-xl border border-zinc-800 bg-zinc-900/30 p-5"
+              >
+                <time className="text-sm text-zinc-500">{post.date}</time>
+                <p className="mt-2 text-lg font-semibold text-zinc-100">{post.title}</p>
+                {"description" in post ? (
+                  <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-zinc-400">
+                    {post.description}
+                  </p>
+                ) : null}
+                {"tags" in post && post.tags.length > 0 ? (
+                  <ul className="mt-3 flex flex-wrap gap-2">
+                    {post.tags.map((tag) => (
+                      <li
+                        key={tag}
+                        className="rounded-full border border-zinc-700/80 bg-zinc-950/50 px-2 py-0.5 text-xs text-zinc-500"
+                      >
+                        {tag}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
